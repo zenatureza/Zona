@@ -1,0 +1,41 @@
+﻿@page "/auth-completa"
+@rendermode InteractiveServer
+
+@inject NavigationManager Navigation
+@inject ZonaApiClient ZonaApi
+
+<h3>Autenticado com sucesso!</h3>
+<p>Agora você pode usar a API autenticada.</p>
+
+@if (AthleteId > 0)
+{
+    <button id="athlete" class="btn btn-primary" @onclick="GetAthlete">
+        Buscar dados do atleta
+    </button>
+}
+
+@if (Athlete != null)
+{
+    <span>@Athlete</span>
+}
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int AthleteId { get; set; }
+
+    private string Athlete { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Console.WriteLine($"Athlete ID recebido: {AthleteId}");
+        // Armazena em sessão, localStorage ou em serviço injetado
+    }
+
+    private async Task GetAthlete()
+    {
+        Athlete = await ZonaApi.GetAthleteAsync(AthleteId);
+        Console.WriteLine(Athlete);
+
+    }
+}

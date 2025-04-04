@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Zona.ApiService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -83,8 +84,25 @@ app.MapGet("/auth/callback", async (HttpContext context, IHttpClientFactory http
         return Results.BadRequest($"Erro ao obter token: {error}");
     }
 
-    var tokenJson = JsonDocument.Parse(await tokenResponse.Content.ReadAsStringAsync());
-    var accessToken = tokenJson.RootElement.GetProperty("access_token").GetString();
+    
+    //return Results.Ok(JsonDocument.Parse(athleteJson));
+    var json = await tokenResponse.Content.ReadAsStringAsync();
+    var tokenObj = JsonDocument.Parse(json).RootElement;
+
+    var accessToken = tokenObj.GetProperty("access_token").GetString();
+    var athleteId = tokenObj.GetProperty("athlete").GetProperty("id").GetInt32();
+
+    // [2] Salva esse token temporariamente (em memória, banco ou cache)
+    TokensStore.StoreToken(athleteId, accessToken!);
+
+    // [3] Redireciona o usuário de volta ao Blazor Web
+    return Results.Redirect($"https://localhost:7213/auth-completa?athleteId={athleteId}");
+});
+
+app.MapGet("/athlete/activities/{athleteId:int}", async (IHttpClientFactory httpClientFactory, int athleteId) =>
+{
+    var accessToken = TokensStore.GetToken(athleteId);
+    if (accessToken is null) return Results.Unauthorized();
 
     // Agora chama o /athlete com o token
     var apiClient = httpClientFactory.CreateClient();
@@ -99,8 +117,9 @@ app.MapGet("/auth/callback", async (HttpContext context, IHttpClientFactory http
     }
 
     var athleteJson = await athleteResponse.Content.ReadAsStringAsync();
-    return Results.Ok(JsonDocument.Parse(athleteJson));
+    return Results.Ok(athleteJson);
 });
+
 
 app.MapDefaultEndpoints();
 
