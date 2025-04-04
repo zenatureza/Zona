@@ -1,0 +1,55 @@
+﻿@page "/counter"
+@rendermode InteractiveServer
+
+@inject ZonaApiClient ZonaApi
+@inject NavigationManager NavigationManager
+@inject ILogger<Index> Logger
+
+<PageTitle>Counter</PageTitle>
+
+<h1>Counter</h1>
+
+<p role="status">Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+<button id="auth" class="btn btn-primary" @onclick="AutenticarComStrava">
+    Autenticar com Strava
+</button>
+
+@code {
+    private int currentCount = 0;
+
+    private void IncrementCount()
+    {
+        currentCount++;
+    }
+
+    private string errorMessage = string.Empty;
+    private async Task AutenticarComStrava()
+    {
+        try
+        {
+            errorMessage = string.Empty;
+            Logger.LogInformation("Iniciando autenticação com Strava");
+
+            var response = await ZonaApi.GetAuthUrlAsync();
+
+            if (response is not null && !string.IsNullOrEmpty(response.Url))
+            {
+                Logger.LogInformation($"Redirecionando para: {response.Url}");
+                NavigationManager.NavigateTo(response.Url, forceLoad: true);
+            }
+            else
+            {
+                errorMessage = "A resposta da API não contém uma URL válida.";
+                Logger.LogWarning("Response nulo ou URL vazia retornada da API");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao autenticar: {ex.Message}";
+            Logger.LogError(ex, "Erro ao tentar autenticar com Strava");
+        }
+    }
+}
